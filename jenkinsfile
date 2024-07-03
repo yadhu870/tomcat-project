@@ -6,7 +6,8 @@ pipeline {
         ECR_REPO_NAME = 'yadhutomcat'
         IMAGE_TAG = "latest" // or "${env.BUILD_NUMBER}"
         AWS_CREDENTIALS_ID = 'awscred'
-        CLUSTER_NAME = 'yadhu-ecs-cluster'
+        CLUSTER_NAME = 'yadhu-cluster'
+        TASK_NAME = 'yadhu-task-def'
         SERVICE_NAME = 'yadhu-tom'
     }
     tools {
@@ -58,8 +59,8 @@ pipeline {
                     withAWS(credentials: AWS_CREDENTIALS_ID, region: AWS_DEFAULT_REGION) {
                         // Update ECS service with the new image
                         sh """
-                        aws ecs update-service --cluster ${CLUSTER_NAME} --service ${SERVICE_NAME} --force-new-deployment
-                        """
+                         aws ecs update-service --cluster ${CLUSTER_NAME} --service ${SERVICE_NAME} --force-new-deployment --region ${AWS_DEFAULT_REGION}
+                           """
                     }
                 }
             }
