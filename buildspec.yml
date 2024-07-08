@@ -1,0 +1,38 @@
+version: 0.2
+
+run-as: root
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+    commands:
+      - echo Installing Docker...
+      - yum update -y
+      - yum install -y docker
+      - dockerd > /var/log/dockerd.log 2>&1 &
+      - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
+      - docker --version
+      - yum install -y maven
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/k2b2d0w8
+      - REPOSITORY_URI=public.ecr.aws/k2b2d0w8/yadhutomcat
+      - IMAGE_TAG=latest
+  build:
+    commands:
+      - mvn clean install
+      - pwd
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Restarting ECS service...
+      - aws ecs update-service --cluster yadhu-aws-tools --service yadhu-service --force-new-deployment
